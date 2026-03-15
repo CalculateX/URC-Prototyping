@@ -11,9 +11,23 @@ The 'get_encoder_values.py' script targets a single SPARK MAX motor controller t
 **Key Features**
 * Firmware v24+ Compatibility: Specifically decodes the 0x2E0 (Status 0) and 0x2E2 (Status 2) frames used in recent firmware versions.
 * High-Resolution Feedback: Decodes 32-bit IEEE floating-point values for Motor Velocity (RPM) and Position (Rotations).
-* Electrical Diagnostics: Parses 12-bit fixed-point data to provide live readings for Bus Voltage and Phase Current. 
+* Electrical Diagnostics: Parses 12-bit fixed-point data to provide live readings for Bus Voltage and Phase Current.
 * Hardware Abstraction: Automatically maps internal motor data to actual joint states based on the provided gear ratio.
 
 **Requirements**
 * The 'can1' interface must be up and configured for a 1Mbps bitrate.
 * Periodic Status Frames 0 and 2 must be enabled/configured on the SPARK MAX via the REV Hardware Client.
+
+**Build Instructions**
+To compile the C++ shared library required for motor control, navigate to the project directory and run:
+
+1. Create a build directory:
+   mkdir -p build && cd build
+
+2. Generate the Makefile:
+   cmake ..
+
+3. Compile the bridge:
+   make
+
+This will generate 'libspark_bridge.so' in the build folder, which is required by the Python diagnostic script.
