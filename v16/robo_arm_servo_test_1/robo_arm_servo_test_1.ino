@@ -1,0 +1,106 @@
+#include <Servo.h>
+
+Servo s1, s2, s3, s4, s5, eoat;
+
+String inputLine = "";
+
+// Aux Pins
+#define SOLENOID_PIN 2
+#define POT_PIN A0
+#define BUTTON_PIN 13
+
+int potValue = 0;
+int motorSpeed = 0;
+
+
+void setup() {
+  Serial.begin(115200);
+
+  // Servo Pins and Setup
+  s1.attach(3);
+  s4.attach(5);
+  s5.attach(6);
+  eoat.attach(9);
+
+  // Aux Setup
+  pinMode(SOLENOID_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+}
+
+void loop() {
+  // 1. Process Serial Data
+  while (Serial.available()) {
+    char c = Serial.read();
+
+    if (c == '\n' || c == '\r') {
+      if (inputLine.length() > 0) {
+        processLine(inputLine);
+        inputLine = "";
+      }
+    } else {
+      inputLine += c;
+    }
+  } // The while loop ends here now
+
+  // 2. Solenoid Control
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    digitalWrite(SOLENOID_PIN, HIGH);
+  } else {
+    digitalWrite(SOLENOID_PIN, LOW);
+  }
+
+  // 3. Write EOAT Servo From Potentiometer
+  potValue = analogRead(POT_PIN);
+  // Map to 180 degrees for standard servo control
+  motorSpeed = map(potValue, 0, 1023, 0, 180);
+  // Write to the eoat servo, not s1
+  eoat.write(motorSpeed);
+}
+
+void processLine(String line) {
+
+  Serial.print("RAW: [");
+  Serial.print(line);
+  Serial.println("]");
+
+  float values[5];
+  int index = 0;
+
+  int start = 0;
+  int commaIndex;
+
+  while (index < 5) {
+    commaIndex = line.indexOf(',', start);
+
+    if (commaIndex == -1 && index < 4) {
+      Serial.println("PARSE_FAIL");
+      return;
+    }
+
+    String token;
+
+    if (commaIndex == -1) {
+      token = line.substring(start);
+    } else {
+      token = line.substring(start, commaIndex);
+    }
+
+    values[index] = token.toFloat();
+    index++;
+
+    if (commaIndex == -1)
+      break;
+
+    start = commaIndex + 1;
+  }
+
+  if (index == 5) {
+    s1.write(values[0]);
+    s4.write(values[3]);
+    s5.write(values[4]);
+
+    Serial.println("OK");
+  } else {
+    Serial.println("PARSE_FAIL");
+  }
+}

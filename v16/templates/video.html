@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rover Dual Camera - Fullscreen</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 20px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #ff4444;
+            font-weight: bold;
+            font-size: 1.1rem;
+            pointer-events: none;
+            transition: color 0.3s;
+        }
+
+        #master-no-signal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #050505;
+            z-index: 5;
+            color: #ff4444;
+        }
+        #master-no-signal h2 { font-size: 4rem; letter-spacing: 8px; text-shadow: 0 0 20px rgba(255, 68, 68, 0.4); margin: 0;}
+        #master-no-signal p { color: #888; font-size: 1.5rem; }
+
+        .video-grid {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 1; 
+        }
+
+        .feed-container {
+            position: relative;
+            flex: 1 1 48%; 
+            height: 100%;
+            max-height: 100%;
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            border: 2px solid #222;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .video-grid .feed-container:only-child {
+            flex: 1 1 100%;
+            border: none;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            opacity: 1;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="header-info" id="status-overlay">WAITING FOR TELEMETRY...</div>
+
+    <div id="master-no-signal">
+        <h2>NO SIGNAL</h2>
+        <p id="sub-status">Awaiting Connection to Basestation...</p>
+    </div>
+
+    <div class="video-grid">
+        <div class="feed-container" id="container-cam1">
+            <img src="/video_feed/1" id="live-feed-1" alt="Camera 1 Loading...">
+        </div>
+        <div class="feed-container" id="container-cam2">
+            <img src="/video_feed/2" id="live-feed-2" alt="Camera 2 Loading...">
+        </div>
+    </div>
+
+    <script>
+        setInterval(() => {
+            fetch('/api/telemetry')
+                .then(res => res.json())
+                .then(data => {
+                    const overlayText = document.getElementById('status-overlay');
+                    const masterError = document.getElementById('master-no-signal');
+                    const subStatusText = document.getElementById('sub-status');
+                    
+                    const cam1Container = document.getElementById('container-cam1');
+                    const cam2Container = document.getElementById('container-cam2');
+
+                    overlayText.innerText = `[ ${data.video_24_fps} FPS ] - ${data.video_status.toUpperCase()}`;
+
+                    if (data.video_24_fps === 0 || data.video_status.includes("Waiting") || data.video_status.includes("Lost")) {
+                        overlayText.style.color = "#ff4444";
+                        
+                        masterError.style.display = "flex";
+                        subStatusText.innerText = data.video_status;
+                        
+                        cam1Container.style.display = "none";
+                        cam2Container.style.display = "none";
+                    } 
+                    else {
+                        masterError.style.display = "none";
+                        overlayText.style.color = "#00ff00"; 
+                        
+                        cam1Container.style.display = data.cam1_active ? "flex" : "none";
+                        cam2Container.style.display = data.cam2_active ? "flex" : "none";
+                        
+                        if(!data.cam1_active && !data.cam2_active) {
+                            masterError.style.display = "flex";
+                            subStatusText.innerText = "Network Active, but 0 Cameras Detected.";
+                        }
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('master-no-signal').style.display = "flex";
+                    document.getElementById('status-overlay').innerText = "BASESTATION OFFLINE";
+                    document.getElementById('status-overlay').style.color = "#ff4444";
+                    document.getElementById('sub-status').innerText = "Local Flask server is not responding.";
+                });
+        }, 250);
+    </script>
+</body>
+</html>

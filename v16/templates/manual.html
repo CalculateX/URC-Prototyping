@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --bg-dark: #1e1e1e;
+        --ctrl-body: #252525;
+        --ctrl-outline: #444;
+        --accent: #CFDCE9;
+        --cmd-color: #fff; 
+    }
+
+    .card.bg-dark { background-color: var(--ctrl-body) !important; border-color: var(--ctrl-outline) !important; }
+    .card-header { background-color: transparent !important; border-bottom-color: var(--ctrl-outline) !important; }
+    .input-group-text, .form-control { border-color: var(--ctrl-outline) !important; background-color: var(--ctrl-body) !important; color: white !important; }
+
+    .telemetry-val { font-family: 'Courier New', Courier, monospace; font-size: 1.4rem; color: var(--accent); }
+    .telemetry-cmd { font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; color: var(--cmd-color); }
+    .telemetry-unit { font-size: 0.8rem; color: #888; margin-right: 5px;}
+    .divider { color: #444; font-size: 1.4rem; margin: 0 4px; font-weight: lighter; }
+    .motor-label { color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+    .telem-row { border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
+    .telem-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+    .gov-display { font-family: 'Courier New', Courier, monospace; color: #f0ad4e; text-shadow: 0 0 10px rgba(240, 173, 78, 0.2); }
+
+    .led-indicator { width: 30px; height: 30px; border-radius: 50%; background-color: #333; border: 2px solid #555; box-shadow: inset 0 0 10px #000; margin: 0 auto; transition: 0.2s; }
+    .led-red { background-color: #ff4444; box-shadow: 0 0 15px #ff4444; }
+    .led-green { background-color: #00cc00; box-shadow: 0 0 15px #00cc00; }
+    .led-blue { background-color: #0088ff; box-shadow: 0 0 15px #0088ff; }
+
+    .gamepad-body { position: relative; width: 440px; height: 280px; background-color: var(--ctrl-body); border: 2px solid var(--ctrl-outline); border-radius: 50px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); margin-top: 50px; }
+    .shoulder-btn { position: absolute; border: 2px solid var(--ctrl-outline); background-color: #333; color: #aaa; font-size: 10px; text-align: center; transition: all 0.1s; }
+    .shoulder-btn.active { background-color: var(--accent); color: #000; box-shadow: 0 0 8px var(--accent); border-color: var(--accent); }
+    .trigger { top: -45px; width: 60px; height: 40px; line-height: 20px; z-index: 0; border-radius: 10px 10px 0 0; padding-top: 5px; }
+    #btn-lt { left: 40px; } #btn-rt { right: 40px; }
+    .bumper { top: -15px; width: 80px; height: 25px; line-height: 20px; z-index: 1; border-radius: 5px; background-color: #3a3a3a; }
+    #btn-lb { left: 30px; } #btn-rb { right: 30px; }
+    .stick-base { position: absolute; width: 60px; height: 60px; background: #1a1a1a; border: 2px solid #555; border-radius: 50%; box-shadow: inset 0 0 10px #000; }
+    .stick-cap { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: #bbb; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    #stick-l { bottom: 50px; left: 60px; } #stick-r { bottom: 50px; right: 100px; }
+    .dpad-container { position: absolute; top: 50px; left: 60px; width: 60px; height: 60px; background: transparent; }
+    .dpad-btn { position: absolute; background: #333; border: 1px solid #555; transition: 0.1s; }
+    .dpad-btn.active { background: var(--accent); box-shadow: 0 0 5px var(--accent); z-index: 10;}
+    #dp-up { top: 0; left: 20px; width: 20px; height: 20px; border-radius: 3px 3px 0 0; border-bottom: none; }
+    #dp-down { bottom: 0; left: 20px; width: 20px; height: 20px; border-radius: 0 0 3px 3px; border-top: none; }
+    #dp-left { top: 20px; left: 0; width: 20px; height: 20px; border-radius: 3px 0 0 3px; border-right: none; }
+    #dp-right { top: 20px; right: 0; width: 20px; height: 20px; border-radius: 0 3px 3px 0; border-left: none; }
+    #dp-center { position: absolute; top: 20px; left: 20px; width: 20px; height: 20px; background: #333; border: none; z-index: -1; }
+    .face-btn-group { position: absolute; top: 50px; right: 60px; width: 80px; height: 80px; }
+    .face-btn { position: absolute; width: 26px; height: 26px; background: #333; border: 1px solid #555; border-radius: 50%; color: #ddd; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+    .face-btn.active { background-color: var(--accent); color: #000; box-shadow: 0 0 8px var(--accent); }
+    #btn-y { top: 0; left: 27px; background: #f0ad4e; color: #000; } #btn-b { top: 27px; right: 0; background: #d9534f; color: #fff;} #btn-a { bottom: 0; left: 27px; background: #5cb85c; color: #000;} #btn-x { top: 27px; left: 0; background: #0275d8; color: #fff;}
+    .brand-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #3b3b3b; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 1px 1px rgba(255,255,255,0.1); }
+    .legend-box { margin-top: 15px; color: #ccc; }
+    .legend-row { border-bottom: 1px solid #333; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+    .key-hl { color: var(--accent); font-family: monospace; font-size: 0.95rem; min-width: 60px; }
+    .legend-func { text-align: right; }
+    .legend-desc { display: block; font-size: 0.75rem; color: #999; font-style: italic; text-align: right; margin-top: 2px; }
+</style>
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-header border-secondary text-center" style="color: var(--accent);">System Status</div>
+                <div class="card-body text-center">
+                    <div id="led-bulb" class="led-indicator"></div>
+                    <div id="led-text" class="mt-2 text-white small">SYSTEM READY</div>
+                </div>
+            </div>
+
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-header border-secondary" style="color: var(--accent);">Motor Telemetry</div>
+                <div class="card-body">
+                    <div class="row h-100">
+                        <div class="col-4 d-flex flex-column justify-content-between text-center">
+                            <div class="telem-row">
+                                <div class="motor-label">MOTOR 1</div>
+                                <div><span id="m1" class="telemetry-val">0.00</span><span class="telemetry-unit">A</span><span class="divider">|</span><span id="m1-cmd" class="telemetry-cmd">0</span><span class="telemetry-unit">%</span></div>
+                            </div>
+                            <div class="telem-row">
+                                <div class="motor-label">MOTOR 2</div>
+                                <div><span id="m2" class="telemetry-val">0.00</span><span class="telemetry-unit">A</span><span class="divider">|</span><span id="m2-cmd" class="telemetry-cmd">0</span><span class="telemetry-unit">%</span></div>
+                            </div>
+                            <div>
+                                <div class="motor-label">MOTOR 3</div>
+                                <div><span id="m3" class="telemetry-val">0.00</span><span class="telemetry-unit">A</span><span class="divider">|</span><span id="m3-cmd" class="telemetry-cmd">0</span><span class="telemetry-unit">%</span></div>
+                            </div>
+                        </div>
+
+                        <div class="col-4 border-start border-end border-secondary d-flex flex-column align-items-center justify-content-center">
+                            <div class="motor-label mb-2">POWER LIMIT</div>
+                            <div class="display-4 gov-display"><span id="power-text">0</span>%</div>
+                        </div>
+
+                        <div class="col-4 d-flex flex-column justify-content-between text-center">
+                            <div class="telem-row">
+                                <div class="motor-label">MOTOR 4</div>
+                                <div><span id="m4" class="telemetry-val">0.00</span><span class="telemetry-unit">A</span><span class="divider">|</span><span id="m4-cmd" class="telemetry-cmd">0</span><span class="telemetry-unit">%</span></div>
+                            </div>
+                            <div class="telem-row">
+                                <div class="motor-label">MOTOR 5</div>
+                                <div><span id="m5" class="telemetry-val">0.00</span><span class="telemetry-unit">A</span><span class="divider">|</span><span id="m5-cmd" class="telemetry-cmd">0</span><span class="telemetry-unit">%</span></div>
+                            </div>
+                            <div>
+                                <div class="motor-label">MOTOR 6</div>
+                                <div><span id="m6" class="telemetry-val">0.00</span><span class="telemetry-unit">A</span><span class="divider">|</span><span id="m6-cmd" class="telemetry-cmd">0</span><span class="telemetry-unit">%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            
+            <div class="card bg-dark border-secondary mb-3 text-center">
+                <div class="card-header border-secondary" style="color: var(--accent);">Live Camera Feed</div>
+                <div class="card-body p-0">
+                    <img src="http://10.10.10.11:8080/stream" class="img-fluid" style="width: 100%; min-height: 300px; background: #000;" alt="Camera Offline">
+                </div>
+            </div>
+
+            <div class="card bg-dark border-secondary mt-0">
+                <div class="card-header border-secondary p-0">
+                    <ul class="nav nav-tabs border-secondary" id="controlTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active text-white" href="#" onclick="switchMode('DRIVE', this)" style="border-radius: 0;">DRIVE CONTROL</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-secondary" href="#" onclick="switchMode('ARM', this)" style="border-radius: 0;">ROBOTIC ARM</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body d-flex flex-column align-items-center justify-content-center p-3">
+                    
+                    <div id="drive-ui" class="w-100 d-flex flex-column align-items-center">
+                        <div class="gamepad-body">
+                            <div id="btn-lt" class="shoulder-btn trigger">LT</div><div id="btn-rt" class="shoulder-btn trigger">RT</div>
+                            <div id="btn-lb" class="shoulder-btn bumper">LB</div><div id="btn-rb" class="shoulder-btn bumper">RB</div>
+                            <div class="dpad-container">
+                                <div id="dp-up" class="dpad-btn"></div><div id="dp-down" class="dpad-btn"></div>
+                                <div id="dp-left" class="dpad-btn"></div><div id="dp-right" class="dpad-btn"></div><div id="dp-center"></div>
+                            </div>
+                            <div id="stick-l" class="stick-base"><div id="cap-l" class="stick-cap"></div></div>
+                            <div id="stick-r" class="stick-base"><div id="cap-r" class="stick-cap"></div></div>
+                            <div class="face-btn-group">
+                                <div id="btn-y" class="face-btn">Y</div><div id="btn-b" class="face-btn">B</div>
+                                <div id="btn-a" class="face-btn">A</div><div id="btn-x" class="face-btn">X</div>
+                            </div>
+                            <div class="brand-text">ROVER</div>
+                        </div>
+                        
+                        <div class="row w-100 mt-4 legend-box">
+                            <div class="col-md-6 pe-4">
+                                <div class="legend-row"><span class="key-hl">RT / LT</span><div><div class="legend-func">Throttle +/-</div><span class="legend-desc">Forward / Backward</span></div></div>
+                                <div class="legend-row"><span class="key-hl">Right Stick</span><div><div class="legend-func">Steering</div><span class="legend-desc">Turn Left / Right</span></div></div>
+                            </div>
+                            <div class="col-md-6 ps-4">
+                                <div class="legend-row"><span class="key-hl">B / A / X</span><div><div class="legend-func">Indicators</div><span class="legend-desc">Red / Green / Blue</span></div></div>
+                                <div class="legend-row"><span class="key-hl">LB / RB</span><div><div class="legend-func">Power Limit</div><span class="legend-desc">+/- 10% Steps</span></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="arm-ui" class="w-100 d-none text-center mt-4 mb-2">
+                        <h3 style="color: var(--accent); letter-spacing: 2px;">ROBOTIC ARM ACTIVE</h3>
+                        <p class="text-secondary mb-4">Drive disabled. Use <strong>W/A/S/D</strong> keys for Stepper, and controller for Arm.</p>
+                        
+                        <div class="row w-100 text-start legend-box mb-4 mx-auto" style="max-width: 600px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #333;">
+                            <div class="col-6 pe-3">
+                                <div class="legend-row"><span class="key-hl">Left Stick (L/R)</span><div class="legend-func">Servo 1</div></div>
+                                <div class="legend-row"><span class="key-hl">Triggers</span><div class="legend-func">Servo 2</div></div>
+                                <div class="legend-row"><span class="key-hl">Right Stick (L/R)</span><div class="legend-func">Servo 3</div></div>
+                            </div>
+                            <div class="col-6 ps-3">
+                                <div class="legend-row"><span class="key-hl">Right Stick (U/D)</span><div class="legend-func">Servo 4</div></div>
+                                <div class="legend-row"><span class="key-hl">Bumpers</span><div class="legend-func">NEO 7 (+/-)</div></div>
+                                <div class="legend-row"><span class="key-hl">Y / A</span><div class="legend-func">NEO 8 (+/-)</div></div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4 mb-4 border-top border-bottom border-secondary py-4 w-100 mx-auto">
+                            <div class="col-4 mb-4"><h5>SERVO 1</h5><h3 id="s1-readout" class="telemetry-val">150</h3></div>
+                            <div class="col-4 mb-4"><h5>SERVO 2</h5><h3 id="s2-readout" class="telemetry-val">150</h3></div>
+                            <div class="col-4 mb-4"><h5>SERVO 3</h5><h3 id="s3-readout" class="telemetry-val">150</h3></div>
+                            
+                            <div class="col-4 mb-2"><h5>SERVO 4</h5><h3 id="s4-readout" class="telemetry-val">150</h3></div>
+                            <div class="col-4 mb-2"><h5>NEO 7 CMD</h5><h3 id="neo7-readout" class="telemetry-val" style="color: #ff00ff;">0.00</h3></div>
+                            <div class="col-4 mb-2"><h5>NEO 8 CMD</h5><h3 id="neo8-readout" class="telemetry-val" style="color: #ff00ff;">0.00</h3></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener("gamepadconnected", (e) => { updateController(); });
+
+function switchMode(mode, clickedTab) {
+    fetch(`/api/set_mode/${mode}`);
+    document.querySelectorAll('#controlTabs .nav-link').forEach(t => {
+        t.classList.remove('active', 'text-white');
+        t.classList.add('text-secondary');
+    });
+    clickedTab.classList.add('active', 'text-white');
+    clickedTab.classList.remove('text-secondary');
+
+    if(mode === 'DRIVE') {
+        document.getElementById('drive-ui').classList.remove('d-none');
+        document.getElementById('arm-ui').classList.add('d-none');
+    } else {
+        document.getElementById('drive-ui').classList.add('d-none');
+        document.getElementById('arm-ui').classList.remove('d-none');
+    }
+}
+
+function updateController() {
+    const gp = navigator.getGamepads()[0];
+    if (gp) {
+        hl('btn-rt', gp.buttons[7].pressed);
+        hl('btn-lt', gp.buttons[6].pressed);
+        const moveR = `translate(calc(-50% + ${gp.axes[2] * 20}px), calc(-50% + 0px))`; 
+        document.getElementById('cap-r').style.transform = moveR;
+        const moveL = `translate(calc(-50% + ${gp.axes[0] * 20}px), calc(-50% + ${gp.axes[1] * 20}px))`;
+        document.getElementById('cap-l').style.transform = moveL;
+        hl('dp-left', gp.buttons[14].pressed); hl('dp-right', gp.buttons[15].pressed);
+        hl('dp-up', gp.buttons[12].pressed); hl('dp-down', gp.buttons[13].pressed);
+        hl('btn-a', gp.buttons[0].pressed); hl('btn-b', gp.buttons[1].pressed);
+        hl('btn-x', gp.buttons[2].pressed); hl('btn-y', gp.buttons[3].pressed);
+        hl('btn-lb', gp.buttons[4].pressed); hl('btn-rb', gp.buttons[5].pressed);
+    }
+    requestAnimationFrame(updateController);
+}
+
+function hl(id, isActive) {
+    const el = document.getElementById(id);
+    if(el) isActive ? el.classList.add('active') : el.classList.remove('active');
+}
+
+function fetchTelemetry() {
+    fetch('/api/telemetry')
+        .then(res => res.json())
+        .then(data => {
+            for(let i=1; i<=6; i++) {
+                const el = document.getElementById('m'+i);
+                if(el) el.innerText = data['m'+i].toFixed(2);
+            }
+            
+            const lp = Math.round(data.cmd_l * 100);
+            const rp = Math.round(data.cmd_r * 100);
+            document.getElementById('m1-cmd').innerText = lp; 
+            document.getElementById('m2-cmd').innerText = lp; 
+            document.getElementById('m3-cmd').innerText = lp;
+            document.getElementById('m4-cmd').innerText = rp; 
+            document.getElementById('m5-cmd').innerText = rp; 
+            document.getElementById('m6-cmd').innerText = rp;
+
+            document.getElementById('power-text').innerText = Math.round(data.power_limit * 100);
+
+            if (document.getElementById('s1-readout')) {
+                document.getElementById('s1-readout').innerText = Math.round((data.s1 - 500) * 0.15);
+                document.getElementById('s2-readout').innerText = Math.round((data.s2 - 500) * 0.15);
+                document.getElementById('s3-readout').innerText = Math.round((data.s3 - 500) * 0.15);
+                document.getElementById('s4-readout').innerText = Math.round((data.s4 - 500) * 0.15);
+            }
+            
+            // NEW: Parse the NEO commands safely
+            if (document.getElementById('neo7-readout') && data.neo7 !== undefined) {
+                document.getElementById('neo7-readout').innerText = data.neo7.toFixed(2);
+                document.getElementById('neo8-readout').innerText = data.neo8.toFixed(2);
+            }
+
+            const led = document.getElementById('led-bulb');
+            const txt = document.getElementById('led-text');
+            led.classList.remove('led-red', 'led-green', 'led-blue');
+            if (data.led_color === "RED") { led.classList.add('led-red'); txt.innerText = "Auto (RED)"; }
+            else if (data.led_color === "GREEN") { led.classList.add('led-green'); txt.innerText = "Arrived (GREEN)"; }
+            else if (data.led_color === "BLUE") { led.classList.add('led-blue'); txt.innerText = "Teleop (BLUE)"; }
+            else { txt.innerText = "LED OFF"; }
+        });
+}
+setInterval(fetchTelemetry, 100); 
+</script>
+{% endblock %}
